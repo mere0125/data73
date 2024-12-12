@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Amazon Stock Market Chart</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .chart { 
+            width: 100%; 
+            height: 500px; 
+        }
+        .tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            pointer-events: none;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Amazon Stock Market Chart (2015-2024)</h1>
+    <div class="chart" id="stockChart"></div>
+    <div class="tooltip" id="tooltip" style="opacity: 0;"></div>
+
+    <script>
+    // Sample data - replace with your actual Kaggle dataset
+    const sampleData = [
+        {"Date": "2015-01-02", "Open": 308.66, "High": 310.23, "Low": 300.11, "Close": 305.55, "Volume": 3452100},
+        {"Date": "2015-01-03", "Open": 305.55, "High": 312.45, "Low": 303.25, "Close": 310.12, "Volume": 3784500},
+        // Add more data points here from your Kaggle dataset
+    ];
+
+    function createStockChart(data) {
+        // Parse the date and convert strings to numbers
+        const parseDate = d3.timeParse("%Y-%m-%d");
+        data.forEach(d => {
+            d.Date = parseDate(d.Date);
+            d.Close = +d.Close;
+        });
+
+        // Set up chart dimensions
+        const margin = {top: 50, right: 50, bottom: 50, left: 50};
+        const width = document.getElementById('stockChart').clientWidth - margin.left - margin.right;
+        const height = document.getElementById('stockChart').clientHeight - margin.top - margin.bottom;
+
+        // Create scales
+        const x = d3.scaleTime()
+            .domain(d3.extent(data, d => d.Date))
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([d3.min(data, d => d.Close) * 0.9, d3.max(data, d => d.Close) * 1.1])
+            .range([height, 0]);
+
+        // Create line generator
+        const line = d3.line()
+            .x(d => x(d.Date))
+            .y(d => y(d.Close));
+
+        // Create SVG
+        const svg = d3.select("#stockChart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Add x-axis
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        // Add y-axis
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        // Add line path
+        svg.append("path")
+            .datum(data)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", 2)
+            .attr("d", line);
+
+        // Add tooltips
+        const tooltip = d3.select("#tooltip");
+
+        svg.selectAll(".dot")
+            .data(data)
+            .enter().append("circle")
+            .attr("class", "dot")
+            .attr("cx", d => x(d.Date))
+            .attr("cy", d => y(d.Close))
+            .attr("r", 5)
+            .attr("fill", "steelblue")
+            .on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", .9);
+                tooltip.html(`Date: ${d.Date.toLocaleDateString()}<br/>Close: $${d.Close.toFixed(2)}`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function() {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+    }
+
+    // Initialize the chart with sample data
+    createStockChart(sampleData);
+    </script>
+</body>
+</html>
